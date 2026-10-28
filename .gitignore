@@ -1,0 +1,10 @@
+data/
+*.db
+.env
+profile.private.json
+*.pdf
+__pycache__/
+*.pyc
+*.log
+*.pem
+*.key
