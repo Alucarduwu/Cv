@@ -1,0 +1,4 @@
+[
+ {"id":"demo:001","company":"Empresa Ejemplo","title":"Junior Full Stack Developer","location":"Remote - Mexico","description":"Build interfaces with React and TypeScript, develop REST APIs using Node.js, and work with PostgreSQL and Git.","url":"https://example.com/jobs/001","source":"demo"},
+ {"id":"demo:002","company":"Laboratorio Ejemplo","title":"Junior Data Analyst","location":"Remote - LATAM","description":"Python, SQL and data analysis. Work with a distributed team.","url":"https://example.com/jobs/002","source":"demo"}
+]
