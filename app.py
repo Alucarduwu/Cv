@@ -113,7 +113,10 @@ class Handler(BaseHTTPRequestHandler):
     c=track_db();c.execute('INSERT INTO tracking VALUES(?,?,?,?) ON CONFLICT(job_id) DO UPDATE SET state=excluded.state,notes=excluded.notes,updated_at=excluded.updated_at',(f['id'],state,f.get('notes','').strip(),jobpilot.now()));c.commit();c.close();dest='/tracking'
    elif self.path=='/ai':
     j=jobpilot.one(f.get('id','')); result=intelligence.ai_workflow(f.get('task',''),j,read_profile())
-    return self.end(200,shell('<h1>Resultado de IA</h1><div class="card"><pre>'+h(json.dumps(result,ensure_ascii=False,indent=2))+'</pre><p>Comprueba cada dato antes de usarlo.</p></div>'))
+    output=result.get('output',{});panel='<h1>Resultado de IA</h1><div class="card"><pre>'+h(json.dumps(result,ensure_ascii=False,indent=2))+'</pre><p>Comprueba cada dato antes de usarlo.</p></div>'
+    if f.get('task')=='resume' and isinstance(output.get('tailored_resume_summary'),str):
+     panel+='<div class="card"><h2>Revisar antes de aplicar</h2><p>Corrige cualquier afirmación que no sea exacta. Se conservarán las experiencias del perfil.</p><form method="post" action="/draft">'+token()+'<input type="hidden" name="id" value="'+h(j['id'])+'"><label>Título<input name="headline" value="'+h(read_profile().get('headline',''))+'"></label><p><label>Resumen<textarea name="summary" rows="7">'+h(output['tailored_resume_summary'])+'</textarea></label></p><button>Guardar versión revisada</button></form></div>'
+    return self.end(200,shell(panel))
    elif self.path=='/answers':
     jobpilot.one(f.get('id',''));questions=[x.strip() for x in f.get('questions','').splitlines() if x.strip()];result=career.career_fact_answers(read_profile(),questions)
     return self.end(200,shell('<h1>Respuestas preparadas</h1><div class="card"><pre>'+h(json.dumps(result,ensure_ascii=False,indent=2))+'</pre><p>Revisa antes de copiar al formulario. No se envió una solicitud.</p></div>'))
@@ -122,4 +125,4 @@ class Handler(BaseHTTPRequestHandler):
   except (ValueError,KeyError,OSError,json.JSONDecodeError) as exc:self.end(400,shell('<h1>No se pudo completar</h1><p>'+h(exc)+'</p>'))
  def log_message(self,format,*args):pass
 if __name__=='__main__':
- port=int(os.environ.get('JOBPILOT_PORT','8765'));print(f'JobPilot: http://127.0.0.1:{port}',flush=True);ThreadingHTTPServer(('127.0.0.1',port),Handler).serve_forever()
+ port=int(os.environ.get('JOBPILOT_PORT','8765'));server=ThreadingHTTPServer(('127.0.0.1',port),Handler);print(f'JobPilot: http://127.0.0.1:{port}',flush=True);server.serve_forever()

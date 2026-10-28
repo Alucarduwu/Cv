@@ -118,3 +118,19 @@ La sección **Seguimiento** guarda estados y notas introducidos por la persona; 
 En cada vacante puedes guardar un título y resumen revisados específicos y descargar un PDF que conserva todas las entradas del perfil y ordena habilidades por coincidencia. La IA puede proponer contenido en la misma página; su salida no se acepta ni aplica automáticamente. Revisa que todo sea verdadero.
 
 La sección de correo de esa página adjunta el PDF generado y envía cuando pulses el botón. Antes de iniciar `app.py`, configura las variables `JOBPILOT_SMTP_HOST`, `JOBPILOT_SMTP_PORT`, `JOBPILOT_SMTP_USER` y `JOBPILOT_SMTP_PASSWORD` indicadas arriba. El servidor SMTP aceptando el correo no confirma entrega ni una entrevista. Un intento queda reservado para impedir reenvíos duplicados; revisa el historial si un fallo lo deja incierto. La sección Seguimiento almacena estados declarados por la persona, de forma independiente del estado de SMTP.
+
+### Asistente de formularios para Chrome o Edge (experimental)
+
+La carpeta `extension/` contiene una extensión local Manifest V3. En Chrome o Edge para escritorio, abre la página de extensiones, activa el modo de desarrollador y selecciona **Cargar descomprimida**, eligiendo la carpeta `extension`. No está publicada en una tienda y no se instala automáticamente.
+
+1. Guarda tu perfil desde JobPilot y abre una vacante HTTPS en una pestaña.
+2. Abre la extensión y selecciona tu archivo local `data/profile.json`.
+3. Pulsa **Previsualizar campos** y revisa el dominio, cada campo y cada valor.
+4. Pulsa **Rellenar campos revisados**; revisa nuevamente el formulario en la página.
+5. Adjunta el CV y envía la solicitud tú cuando corresponda.
+
+La extensión no envía formularios, no sube archivos ni contesta preguntas sensibles; solo intenta campos básicos vacíos con etiquetas reconocibles (nombre completo, correo, teléfono, ubicación, LinkedIn y portafolio). No reemplaza campos existentes. Puede fallar en formularios dentro de iframes, componentes personalizados, etiquetas distintas o sitios que bloquean scripts. Si la pestaña o el formulario cambian, pide volver a previsualizar. La información se lee del archivo seleccionado y se usa en memoria mientras el panel esté abierto; no se envía a servidores de JobPilot. Al rellenar, los datos se comparten con el sitio en el que estás trabajando. Usa la extensión solo donde la plataforma lo permita.
+
+### Aplicar una sugerencia de IA al CV
+
+Con un proveedor configurado, en la vacante selecciona **Sugerir adaptación del CV**. Si la respuesta contiene un resumen de texto, aparecerá en un formulario para editarlo y guardarlo; no se aplica sin revisión. El PDF mantiene todas las entradas de experiencia del perfil. Las sugerencias pueden contener errores y las referencias de evidencia no se verifican automáticamente.
