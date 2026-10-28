@@ -58,3 +58,54 @@ def form_answers(profile,questions):
             if re.fullmatch(pattern,question.casefold()) and value:answer=str(value);evidence=source;break
         result.append({'question':question,'answer':answer,'source':evidence,'status':'known' if answer else 'needs_review'})
     return result
+
+def career_fact_answers(profile,questions):
+    """Basic fields plus user-curated question/answer pairs, never guess."""
+    import unicodedata
+    result=form_answers(profile,questions)
+    def key(s):
+        s=unicodedata.normalize('NFKC',str(s)).casefold()
+        return ' '.join(re.sub(r'[^\w\s]',' ',s).split())
+    known=profile.get('answers',[])
+    if not isinstance(known,list):known=[]
+    for item in result:
+        if item['status']=='known':continue
+        found=[x for x in known if isinstance(x,dict) and key(x.get('question',''))==key(item['question']) and x.get('answer')]
+        if len(found)==1:item.update(answer=str(found[0]['answer']),source='answers: '+str(found[0]['question']),status='known')
+    return result
+
+def tailored_profile(profile,overrides):
+    """Only these explicitly reviewed fields can be customized per job."""
+    p=dict(normalize(profile));p['contact']=dict(profile.get('contact') or {})
+    for key in ('headline','summary'):
+        if key in overrides:p[key]=str(overrides[key]).strip()
+    return p
+
+def resume_pdf(profile,job,overrides=None):
+    """Generate an ATS-friendly searchable PDF using ReportLab, if installed."""
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        import io
+    except ImportError as exc:raise ValueError('Para generar PDF instala reportlab: python -m pip install -r requirements.txt') from exc
+    p=tailored_profile(profile,overrides or {});buf=io.BytesIO();normal='Helvetica';bold='Helvetica-Bold'
+    font=Path('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf');font_b=Path('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf')
+    if font.exists() and font_b.exists():
+        pdfmetrics.registerFont(TTFont('JPFont',str(font)));pdfmetrics.registerFont(TTFont('JPBold',str(font_b)));normal='JPFont';bold='JPBold'
+    styles={'name':ParagraphStyle('name',fontName=bold,fontSize=16,leading=20,spaceAfter=6),'section':ParagraphStyle('section',fontName=bold,fontSize=10,leading=14,spaceBefore=9,spaceAfter=4),'body':ParagraphStyle('body',fontName=normal,fontSize=9,leading=13,spaceAfter=4)}
+    story=[]
+    def add(value,style='body'):story.append(Paragraph(esc(value).replace('\n','<br/>'),styles[style]))
+    add(p['name'],'name');add(p.get('headline',''));contact=p.get('contact') or {};add(' | '.join(str(contact.get(k)) for k in ('location','email','phone') if contact.get(k)))
+    add(' | '.join(str(contact.get(k) or p.get(k)) for k in ('portfolio','linkedin','github') if contact.get(k) or p.get(k)))
+    if p.get('summary'):add('PERFIL','section');add(p['summary'])
+    skills=p.get('skills',[]);matches=text_matches(job.get('title','')+' '+job.get('description',''),skills);ordered=matches+[x for x in skills if x not in matches]
+    if ordered:add('HABILIDADES','section');add(', '.join(ordered))
+    for key,label in [('experience','EXPERIENCIA'),('projects','PROYECTOS'),('education','EDUCACIÓN'),('certifications','CERTIFICACIONES'),('languages','IDIOMAS')]:
+        if not p.get(key):continue
+        add(label,'section')
+        for entry in p[key]:add(text_item(entry))
+    SimpleDocTemplate(buf,pagesize=letter,leftMargin=42,rightMargin=42,topMargin=40,bottomMargin=40,title='CV - '+p['name']).build(story)
+    return buf.getvalue()

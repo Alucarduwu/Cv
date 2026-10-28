@@ -39,7 +39,7 @@ export JOBPILOT_AI_KEY='TU-CLAVE'
 python3 jobpilot.py --profile profile.private.json draft 'lever:trueml:ID_REAL' --ai --output propuesta.json
 ```
 
-Esta opción transmite el perfil y la descripción al proveedor configurado y puede tener costo. El resultado incluye habilidades coincidentes, brechas y sugerencias para adaptar el CV; revísalo porque la IA puede equivocarse. Este prototipo no genera automáticamente un PDF ATS ni verifica afirmaciones por sí mismo.
+Esta opción transmite el perfil y la descripción al proveedor configurado y puede tener costo. El resultado incluye habilidades coincidentes, brechas y sugerencias para adaptar el CV; revísalo porque la IA puede equivocarse. La interfaz genera un PDF con los datos y adaptación revisados; no verifica por sí misma las afirmaciones.
 
 ## Envío de correo tras revisión
 
@@ -105,8 +105,16 @@ Remotive aparece como fuente en los resultados y se conserva su enlace. Su API p
 
 ## Interfaz local de perfil y candidaturas
 
-Ejecuta `python3 app.py` y abre **http://127.0.0.1:8765** en la misma computadora. En «Mi perfil» puedes capturar contacto, resumen, habilidades, experiencias, proyectos, educación, certificaciones e idiomas. El perfil se guarda en `data/profile.json`, carpeta excluida del repositorio. Agrega logros y fechas completos en cada línea.
+Instala la dependencia para PDF con `python3 -m pip install -r requirements.txt`. Ejecuta `python3 app.py` y abre **http://127.0.0.1:8765** en la misma computadora. En «Mi perfil» puedes capturar contacto, resumen, habilidades, experiencias, proyectos, educación, certificaciones e idiomas. El perfil se guarda en `data/profile.json`, carpeta excluida del repositorio. Agrega logros y fechas completos en cada línea.
 
-Desde la interfaz puedes consultar una fuente pública, añadir una vacante mediante su descripción y enlace, revisar coincidencias y brechas, y abrir un CV imprimible. El CV ordena las habilidades mencionadas en la oferta y conserva las entradas de experiencia capturadas: para guardarlo como PDF, usa **Imprimir → Guardar como PDF**. No es una reescritura automática por IA; el botón de IA puede generar sugerencias separadas si configuraste tu proveedor. Revisa las sugerencias antes de usarlas.
+Desde la interfaz puedes consultar una fuente pública, añadir una vacante mediante su descripción y enlace, revisar coincidencias y brechas, y abrir un CV imprimible. El CV ordena las habilidades mencionadas en la oferta y conserva las entradas de experiencia capturadas. Puedes editar el título y resumen por vacante, guardar los cambios y descargar un PDF generado con ReportLab. No es una reescritura automática por IA: el botón de IA genera sugerencias separadas si configuraste tu proveedor y puedes revisarlas y copiarlas al editor. Revisa las sugerencias antes de usarlas.
 
 Para formularios puedes pegar las preguntas: el sistema devuelve respuestas para campos básicos que estén en el perfil y marca los demás como pendientes. **Todavía no rellena ni envía formularios en páginas externas**. Las respuestas y elegibilidad necesitan revisión y la persona debe completar el proceso en la plataforma. La aplicación está pensada solo para una computadora local, sin autenticación multiusuario; no la expongas a Internet. El botón de IA envía perfil y descripción al proveedor configurado.
+
+La sección **Seguimiento** guarda estados y notas introducidos por la persona; no confirma automáticamente que un tercero haya recibido una postulación. En el perfil puedes registrar respuestas verificadas como `pregunta | respuesta`, una por línea. El asistente solo las reutiliza si la pregunta coincide y deja el resto pendiente.
+
+### PDF y envío desde la interfaz
+
+En cada vacante puedes guardar un título y resumen revisados específicos y descargar un PDF que conserva todas las entradas del perfil y ordena habilidades por coincidencia. La IA puede proponer contenido en la misma página; su salida no se acepta ni aplica automáticamente. Revisa que todo sea verdadero.
+
+La sección de correo de esa página adjunta el PDF generado y envía cuando pulses el botón. Antes de iniciar `app.py`, configura las variables `JOBPILOT_SMTP_HOST`, `JOBPILOT_SMTP_PORT`, `JOBPILOT_SMTP_USER` y `JOBPILOT_SMTP_PASSWORD` indicadas arriba. El servidor SMTP aceptando el correo no confirma entrega ni una entrevista. Un intento queda reservado para impedir reenvíos duplicados; revisa el historial si un fallo lo deja incierto. La sección Seguimiento almacena estados declarados por la persona, de forma independiente del estado de SMTP.

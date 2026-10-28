@@ -16,4 +16,10 @@ class AppTests(unittest.TestCase):
   self.post('/demo',{'token':token});self.assertIn('Junior Full Stack Developer',self.get('/jobs'))
   cv=self.get('/resume?id=demo%3A001');self.assertIn('Company A',cv);self.assertIn('Company B',cv)
   output=self.post('/answers',{'token':token,'id':'demo:001','questions':'Correo electrónico\n¿Tienes visa?'});self.assertIn('alex@example.com',output);self.assertIn('needs_review',output)
+  self.post('/draft',{'token':token,'id':'demo:001','headline':'Software Engineer','summary':'Experiencia verificable'});self.assertIn('Software Engineer',self.get('/resume?id=demo%3A001'))
+  self.post('/track',{'token':token,'id':'demo:001','state':'preparacion','notes':'revisar'});self.assertIn('preparacion',self.get('/tracking'))
+  try:import reportlab
+  except ImportError:pass
+  else:
+   pdf=urllib.request.urlopen('http://127.0.0.1:18766/pdf?id=demo%3A001');self.assertTrue(pdf.read().startswith(b'%PDF-'));self.assertEqual(pdf.headers.get_content_type(),'application/pdf')
 if __name__=='__main__':unittest.main()
