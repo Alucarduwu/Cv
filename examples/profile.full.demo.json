@@ -1,0 +1,12 @@
+{
+  "name": "Alex Rivera",
+  "headline": "Full Stack Developer",
+  "summary": "Desarrollador de aplicaciones web con experiencia en interfaces y APIs.",
+  "contact": {"location":"Ciudad Ejemplo, México","email":"alex@example.com","phone":"+520000000000","portfolio":"https://example.com/portfolio","linkedin":"https://example.com/linkedin","github":"https://example.com/github"},
+  "skills": ["JavaScript", "React", "Node.js", "SQL", "Python", "Git"],
+  "experience": [{"company":"Empresa Ejemplo","role":"Desarrollador/a","dates":"2024 - 2025","highlights":["Desarrolló interfaces web y APIs para un proyecto de ejemplo."]}],
+  "projects": [{"name":"Proyecto Ejemplo","description":"Aplicación de demostración con React y Node.js."}],
+  "education": [{"title":"Ingeniería en Tecnologías de la Información","institution":"Universidad de Ejemplo","dates":"2020 - 2024"}],
+  "certifications": ["Certificación de ejemplo"],
+  "languages": [{"name":"Español","level":"Nativo"},{"name":"Inglés","level":"Intermedio"}]
+}
