@@ -88,3 +88,17 @@ El archivo de automatización de GitHub Actions ejecuta pruebas y una demostraci
 ```bash
 python -m unittest discover -s tests -v
 ```
+
+## Búsqueda en múltiples bolsas
+
+Además de Lever y Greenhouse, el proyecto consulta bolsas de empresas en **Ashby** y el agregador **Remotive**. Un lote puede enumerar tantas bolsas de empresa como se necesiten en un JSON (ver `examples/sources.demo.json`):
+
+```bash
+python3 jobpilot.py --profile profile.private.json fetch-batch examples/sources.demo.json
+python3 jobpilot.py --profile profile.private.json fetch ashby linear
+python3 jobpilot.py --profile profile.private.json fetch remotive
+```
+
+Cada bolsa de Lever, Greenhouse y Ashby necesita su identificador público; no se descubren automáticamente todas las empresas. El lote reporta éxito o error por fuente y sigue procesando las demás. Se evita duplicar una misma URL exacta, pero publicaciones similares en URLs distintas requieren revisión manual. Las búsquedas no cubren todas las plataformas ni garantizan que un trabajo remoto acepte candidatos en México. El lector de Lever actualmente consulta hasta 100 vacantes por empresa.
+
+Remotive aparece como fuente en los resultados y se conserva su enlace. Su API pública muestra vacantes con retraso de 24 horas y solicita consultar como máximo cuatro veces al día; JobPilot guarda un caché de seis horas. Revisa sus [términos y documentación](https://github.com/remotive-com/remote-jobs-api) antes de redistribuir resultados. Referencia oficial de [Ashby](https://developers.ashbyhq.com/docs/public-job-posting-api).

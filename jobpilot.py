@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """JobPilot: public job discovery, transparent ranking and reviewable applications."""
-import argparse, csv, email.message, hashlib, html, json, os, re, smtplib, sqlite3, ssl, sys, urllib.error, urllib.parse, urllib.request
+import argparse, csv, email.message, hashlib, html, json, os, re, smtplib, sqlite3, ssl, sys, time, urllib.error, urllib.parse, urllib.request
 from pathlib import Path
 from datetime import datetime, timezone
 import intelligence
@@ -31,6 +31,50 @@ def fetch_greenhouse(company):
     data=get_json('https://boards-api.greenhouse.io/v1/boards/'+urllib.parse.quote(company,safe='')+'/jobs?content=true')
     return [dict(id='greenhouse:'+company+':'+str(x['id']),company=company,title=x.get('title',''),location=x.get('location',{}).get('name',''),description=clean(x.get('content','')),url=x.get('absolute_url',''),source='greenhouse') for x in data.get('jobs',[]) if x.get('id') and x.get('absolute_url')]
 
+def fetch_ashby(company):
+    data=get_json('https://api.ashbyhq.com/posting-api/job-board/'+urllib.parse.quote(company,safe=''))
+    if not isinstance(data.get('jobs'),list): raise ValueError('Ashby devolvió una respuesta inesperada')
+    jobs=[]
+    for x in data['jobs']:
+        url=x.get('jobUrl')
+        if not url or not x.get('title'): continue
+        stable=hashlib.sha256(url.encode()).hexdigest()[:24]
+        loc=x.get('location','') or ''
+        if x.get('isRemote'): loc+=' Remote'
+        jobs.append(dict(id='ashby:'+company+':'+stable,company=company,title=x['title'],location=loc,description=clean(x.get('descriptionPlainText') or x.get('descriptionHtml','')),url=url,source='ashby'))
+    return jobs
+
+def fetch_remotive():
+    # Remotive asks clients to fetch no more than 4 times per day. Cache locally.
+    cache=DATA/'remotive-cache.json'
+    if cache.exists() and time.time()-cache.stat().st_mtime < 21600:
+        data=json.loads(cache.read_text(encoding='utf8'))
+    else:
+        data=get_json('https://remotive.com/api/remote-jobs?category=software-dev')
+        if not isinstance(data.get('jobs'),list): raise ValueError('Remotive devolvió una respuesta inesperada')
+        tmp=cache.with_suffix('.tmp');tmp.write_text(json.dumps(data,ensure_ascii=False),encoding='utf8');tmp.replace(cache)
+    return [dict(id='remotive:'+str(x['id']),company=x.get('company_name',''),title=x.get('title',''),location='Remote - '+(x.get('candidate_required_location') or 'Unknown'),description=clean(x.get('description','')),url=x['url'],source='Remotive') for x in data.get('jobs',[]) if x.get('id') and x.get('url') and x.get('title')]
+
+SOURCES={'lever':fetch_lever,'greenhouse':fetch_greenhouse,'ashby':fetch_ashby}
+def fetch_source(source,board=None):
+    if source=='remotive':
+        if board: raise ValueError('Remotive no requiere board')
+        return fetch_remotive()
+    if source not in SOURCES or not board: raise ValueError('Fuente desconocida o falta board')
+    return SOURCES[source](board)
+
+def fetch_batch(path,profile):
+    configs=json.loads(Path(path).read_text(encoding='utf8'))
+    if not isinstance(configs,list): raise ValueError('El archivo de fuentes debe ser una lista JSON')
+    results=[]
+    for c in configs:
+        try:
+            source=c['source'];board=c.get('board');jobs=fetch_source(source,board)
+            results.append({'source':source,'board':board,'count':save_jobs(jobs,profile),'status':'ok'})
+        except (KeyError,ValueError,OSError,urllib.error.URLError) as exc:
+            results.append({'source':c.get('source','unknown'),'board':c.get('board'),'status':'error','error':str(exc)})
+    return results
+
 def score_job(job, profile):
     text=(job.get('title','')+' '+job.get('description','')).casefold(); loc=(job.get('location','')+' '+text).casefold()
     found=[skill for skill in profile.get('skills',[]) if re.search(r'(?<!\w)'+re.escape(skill.casefold())+r'(?!\w)',text)]
@@ -47,6 +91,9 @@ def save_jobs(jobs,profile):
     con=db(); count=0
     for j in jobs:
         score,reasons=score_job(j,profile)
+        # Exact URL duplicates from different sources retain the first record and history.
+        duplicate=con.execute('SELECT id FROM jobs WHERE url=? AND id<>?',(j['url'],j['id'])).fetchone()
+        if duplicate: continue
         con.execute('''INSERT INTO jobs VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,location=excluded.location,description=excluded.description,url=excluded.url,score=excluded.score,reasons=excluded.reasons,fetched_at=excluded.fetched_at''',(j['id'],j['company'],j['title'],j.get('location',''),j.get('description',''),j['url'],j.get('source','manual'),score,json.dumps(reasons,ensure_ascii=False),now())); count+=1
     con.commit();con.close();return count
 
@@ -105,7 +152,8 @@ def send(job_id,recipient,subject,bodyfile,cv,host,port,user,password,confirm):
 def main():
     p=argparse.ArgumentParser(description='JobPilot: búsqueda, preparación y seguimiento de candidaturas')
     p.add_argument('--profile',default=str(BASE/'examples/profile.demo.json')); sub=p.add_subparsers(dest='command',required=True)
-    f=sub.add_parser('fetch');f.add_argument('source',choices=['lever','greenhouse']);f.add_argument('company')
+    f=sub.add_parser('fetch');f.add_argument('source',choices=['lever','greenhouse','ashby','remotive']);f.add_argument('company',nargs='?')
+    batch=sub.add_parser('fetch-batch');batch.add_argument('path')
     i=sub.add_parser('import-json');i.add_argument('path')
     sub.add_parser('list'); d=sub.add_parser('draft');d.add_argument('job_id');d.add_argument('--ai',action='store_true');d.add_argument('--output')
     a=sub.add_parser('send');a.add_argument('job_id');a.add_argument('--to',required=True);a.add_argument('--subject',required=True);a.add_argument('--body',required=True);a.add_argument('--cv',required=True);a.add_argument('--confirm-send',action='store_true')
@@ -114,12 +162,15 @@ def main():
     w=sub.add_parser('workflow');w.add_argument('task',choices=list(intelligence.TASKS));w.add_argument('job_id');w.add_argument('--output')
     args=p.parse_args(); profile=load_profile(args.profile)
     if args.command=='fetch':
-        jobs=(fetch_lever if args.source=='lever' else fetch_greenhouse)(args.company);print(f'{save_jobs(jobs,profile)} vacantes registradas o actualizadas.')
+        jobs=fetch_source(args.source,args.company);print(f'{save_jobs(jobs,profile)} vacantes registradas o actualizadas.')
+    elif args.command=='fetch-batch':
+        results=fetch_batch(args.path,profile);print(json.dumps(results,indent=2,ensure_ascii=False));
+        if any(x['status']=='error' for x in results): sys.exit(1)
     elif args.command in ['demo','import-json']:
         path=BASE/'examples/jobs.demo.json' if args.command=='demo' else Path(args.path)
         jobs=json.loads(path.read_text(encoding='utf8')); print(f'{save_jobs(jobs,profile)} vacantes registradas o actualizadas.')
     elif args.command=='list':
-        for x in rows('SELECT jobs.*,applications.state FROM jobs LEFT JOIN applications ON jobs.id=applications.job_id ORDER BY score DESC, title'): print(f"{x['score']:3} | {x['id']} | {x['company']} | {x['title']} | {x['location']} | {x['state'] or 'sin postular'}\n    {x['url']}\n    {'; '.join(json.loads(x['reasons']))}")
+        for x in rows('SELECT jobs.*,applications.state FROM jobs LEFT JOIN applications ON jobs.id=applications.job_id ORDER BY score DESC, title'): print(f"{x['score']:3} | {x['id']} | {x['company']} | {x['title']} | {x['location']} | fuente: {x['source']} | {x['state'] or 'sin postular'}\n    {x['url']}\n    {'; '.join(json.loads(x['reasons']))}")
     elif args.command=='draft':
         job=one(args.job_id); data=ai_draft(job,profile) if args.ai else draft(job,profile); content=json.dumps(data,indent=2,ensure_ascii=False)
         if args.output: Path(args.output).write_text(content+'\n',encoding='utf8');print('Borrador guardado:',args.output)
