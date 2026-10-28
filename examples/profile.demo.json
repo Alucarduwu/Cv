@@ -1,0 +1,8 @@
+{
+  "name": "Alex Rivera",
+  "headline": "desarrollador/a full stack",
+  "skills": ["JavaScript", "TypeScript", "React", "Node.js", "SQL", "Python", "Git", "REST", "PostgreSQL"],
+  "portfolio": "https://example.com/portfolio",
+  "experience": ["Ejemplo: desarrolló interfaces web y APIs REST en proyectos personales."],
+  "languages": ["Español", "Inglés intermedio"]
+}
