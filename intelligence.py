@@ -22,7 +22,7 @@ def analytics(jobs,applications):
     return {'jobs_collected':len(jobs),'application_states':dict(counts),'skill_mentions':dict(demand.most_common()),'note':'Counts reflect only collected listings, not the entire job market.'}
 
 TASKS={
- 'resume':'Create tailored_resume_summary, evidence_bullets and missing_evidence. Preserve every employer, never add facts, dates or tools. For each bullet cite an exact fact from the profile.',
+ 'resume':'Return tailored_resume_summary as a string and tailored_experience as an array of objects with source_index (zero-based integer), proposed_text (string) and evidence (string quoting the original profile). Include each experience exactly once in original order, preserving employer and dates. Never add facts, dates, tools or achievements. Include missing_evidence as an array. The candidate will review before saving.',
  'interview':'Create interview_questions, preparation_topics and evidence_to_review for this specific role. Do not answer in the candidate\'s voice or invent experience.',
  'outreach':'Create subject, message, matched_evidence and missing_requirements. Make a concise personalized outreach message in the job language.',
  'review':'Create role_summary, matched_evidence, missing_requirements, location_uncertainty and questions_to_ask. Distinguish unverified requirements from true gaps.'}
