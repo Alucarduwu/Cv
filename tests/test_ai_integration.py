@@ -12,10 +12,10 @@ class AITests(unittest.TestCase):
    server=ThreadingHTTPServer(('127.0.0.1',0),app.Handler);thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start();base='http://127.0.0.1:'+str(server.server_port)
    def post(path,body):return urllib.request.urlopen(urllib.request.Request(base+path,data=urllib.parse.urlencode(body).encode())).read().decode()
    try:
-    with patch('intelligence.ai_workflow',return_value={'output':{'tailored_resume_summary':'Propuesta verificable'},'warning':'review'}):
+    with patch('intelligence.ai_workflow',return_value={'output':{'tailored_resume_summary':'Propuesta verificable','tailored_experience':[{'source_index':0,'proposed_text':'Empresa Ejemplo | logro revisado'}]},'warning':'review'}):
      page=post('/ai',{'token':app.TOKEN,'id':'a','task':'resume'})
-    self.assertIn('Propuesta verificable',page);self.assertFalse(app.draft_path('a').exists())
-    post('/draft',{'token':app.TOKEN,'id':'a','headline':'Dev','summary':'Propuesta revisada'})
+    self.assertIn('Propuesta verificable',page);self.assertIn('Empresa Ejemplo | logro revisado',page);self.assertFalse(app.draft_path('a').exists())
+    post('/draft',{'token':app.TOKEN,'id':'a','headline':'Dev','summary':'Propuesta revisada','experience_0':'Empresa Ejemplo | logro revisado','experience_fingerprint':__import__('career').experience_fingerprint(app.read_profile())})
     self.assertEqual(json.loads(app.draft_path('a').read_text())['summary'],'Propuesta revisada')
    finally:server.shutdown();server.server_close();thread.join();jobpilot.DATA,jobpilot.DB,app.PROFILE=old
 if __name__=='__main__':unittest.main()

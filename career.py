@@ -1,5 +1,5 @@
 """Structured candidate profile, evidence-based forms and printable resume."""
-import html, json, re
+import html, json, re, hashlib
 from pathlib import Path
 from typing import Any
 
@@ -74,11 +74,23 @@ def career_fact_answers(profile,questions):
         if len(found)==1:item.update(answer=str(found[0]['answer']),source='answers: '+str(found[0]['question']),status='known')
     return result
 
+def experience_fingerprint(profile):
+    payload=json.dumps(profile.get('experience',[]),sort_keys=True,ensure_ascii=False,separators=(',',':'))
+    return hashlib.sha256(payload.encode('utf8')).hexdigest()
+
+def reviewed_experience(profile,overrides):
+    original=profile.get('experience',[]);candidate=overrides.get('experience')
+    if overrides.get('experience_fingerprint') != experience_fingerprint(profile): return original
+    if not isinstance(candidate,list) or len(candidate)!=len(original): return original
+    if not all(isinstance(x,str) and x.strip() for x in candidate): return original
+    return candidate
+
 def tailored_profile(profile,overrides):
     """Only these explicitly reviewed fields can be customized per job."""
     p=dict(normalize(profile));p['contact']=dict(profile.get('contact') or {})
     for key in ('headline','summary'):
         if key in overrides:p[key]=str(overrides[key]).strip()
+    p['experience']=reviewed_experience(profile,overrides)
     return p
 
 def resume_pdf(profile,job,overrides=None):
