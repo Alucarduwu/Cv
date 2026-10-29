@@ -134,3 +134,7 @@ La extensión no envía formularios, no sube archivos ni contesta preguntas sens
 ### Aplicar una sugerencia de IA al CV
 
 Con un proveedor configurado, en la vacante selecciona **Sugerir adaptación del CV**. Si la respuesta contiene un resumen de texto, aparecerá en un formulario para editarlo y guardarlo; no se aplica sin revisión. El PDF mantiene todas las entradas de experiencia del perfil. Las sugerencias pueden contener errores y las referencias de evidencia no se verifican automáticamente.
+
+### Adaptar experiencias por vacante
+
+El editor de cada vacante permite revisar y editar una entrada por cada experiencia del perfil. Si la IA devuelve sugerencias con índices válidos, aparecen junto a cada original para compararlas. La adaptación se guarda solo tras pulsar «Guardar versión revisada». Se exige una entrada no vacía por cada experiencia; si cambias o reordenas el perfil, se descarta la adaptación desactualizada y se vuelve a usar la experiencia original. Comprueba manualmente nombres, fechas y hechos: la IA y el editor no pueden garantizar que sean correctos. La salida del modelo puede no coincidir con el formato esperado; en ese caso se conserva el texto anterior y se muestra la respuesta para revisión.
